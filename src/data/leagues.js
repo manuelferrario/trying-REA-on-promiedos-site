@@ -1,4 +1,5 @@
 // Static catalogue: competitions, teams (name, abbreviation, colours, strength 1-5).
+// apiId / urlName mirror the identifiers promiedos.com.ar uses in /league/{urlName}/{apiId}.
 
 const t = (name, short, c1, c2, strength) => ({ name, short, colors: [c1, c2], strength })
 
@@ -100,7 +101,10 @@ const SURNAMES_EN = [
 export const LEAGUES = [
   {
     id: 'lpf',
+    apiId: 'hc',
+    urlName: 'liga-profesional',
     name: 'Liga Profesional',
+    fullName: 'Liga Profesional Argentina',
     country: 'Argentina',
     flag: '🇦🇷',
     season: 'Clausura 2026',
@@ -112,13 +116,16 @@ export const LEAGUES = [
       { name: 'Zona B', teams: LPF_ZONE_B },
     ],
     zones: [
-      { from: 1, to: 8, kind: 'qualify', label: 'Clasifica a octavos de final' },
+      { from: 1, to: 8, kind: 'qualify', label: 'Octavos de Final' },
     ],
     dayOffsets: [-1, -1, 0, 0, 0, 1, 1],
   },
   {
     id: 'premier',
+    apiId: 'h',
+    urlName: 'premier-league',
     name: 'Premier League',
+    fullName: 'Premier League',
     country: 'Inglaterra',
     flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
     season: '2026/27',
@@ -135,7 +142,10 @@ export const LEAGUES = [
   },
   {
     id: 'laliga',
+    apiId: 'bb',
+    urlName: 'laliga',
     name: 'LaLiga',
+    fullName: 'LaLiga',
     country: 'España',
     flag: '🇪🇸',
     season: '2026/27',
@@ -153,3 +163,4 @@ export const LEAGUES = [
 ]
 
 export const LEAGUE_BY_ID = Object.fromEntries(LEAGUES.map((l) => [l.id, l]))
+export const LEAGUE_BY_API_ID = Object.fromEntries(LEAGUES.map((l) => [l.apiId, l]))

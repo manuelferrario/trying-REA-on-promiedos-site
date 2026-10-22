@@ -1,53 +1,51 @@
 import Crest from '../components/Crest.jsx'
-import MatchRow from '../components/MatchRow.jsx'
+import GameRow from '../components/GameRow.jsx'
 import StandingsTable from '../components/StandingsTable.jsx'
-import { matchState, standings, teamMatches } from '../data/engine.js'
+import { getTeam } from '../api/client.js'
+import { usePolling } from '../lib/usePolling.js'
 
-export default function TeamPage({ team, league, now, onOpen }) {
-  const matches = teamMatches(team.id)
-  const played = matches.filter((m) => matchState(m, now).status !== 'scheduled')
-  const upcoming = matches.filter((m) => matchState(m, now).status === 'scheduled')
-  const group = standings(league, now, true)[team.group]
-  const pos = group.rows.findIndex((r) => r.team.id === team.id) + 1
+export default function TeamPage({ teamId }) {
+  const { data, loading, error } = usePolling(`team/${teamId}`, () => getTeam(teamId))
+  if (error) return <div className="panel empty">{error.message}</div>
+  if (loading) return <div className="panel skeleton">Cargando equipo…</div>
+
+  const { competitor: team, league } = data
+  const pos = data.table.table.rows.find((r) => r.entity.object.id === team.id)?.num
 
   return (
     <>
-      <div className="league-hero team-hero">
+      <div className="team-hero">
         <Crest team={team} size={64} />
         <div>
-          <h1>{team.name}</h1>
-          <a href={`#/liga/${league.id}`}>
-            {league.flag} {league.name}
-            {group.name ? ` · ${group.name}` : ''} · {pos}º
+          <h1 className="page-title left">{team.name}</h1>
+          <a href={`#/league/${league.url_name}/${league.id}`}>
+            {league.flag} {league.name} · {data.table.name} · {pos}º
           </a>
         </div>
       </div>
 
       <div className="team-grid">
-        <div>
-          <section className="card">
-            <h3 className="card-title">Próximos partidos</h3>
-            {upcoming.slice(0, 5).map((m) => (
-              <MatchRow key={m.id} match={m} now={now} onOpen={onOpen} showDate />
+        <div className="team-col-main">
+          <section className="panel">
+            <h2 className="panel-title">Próximos partidos</h2>
+            {data.next.length === 0 && <p className="empty">No hay partidos programados.</p>}
+            {data.next.map((g) => (
+              <GameRow key={g.id} game={g} showDate />
             ))}
-            {upcoming.length === 0 && <p className="empty">No hay partidos programados.</p>}
           </section>
-          <section className="card">
-            <h3 className="card-title">Últimos resultados</h3>
-            {played
-              .slice(-8)
-              .reverse()
-              .map((m) => (
-                <MatchRow key={m.id} match={m} now={now} onOpen={onOpen} showDate />
-              ))}
+          <section className="panel">
+            <h2 className="panel-title">Últimos resultados</h2>
+            {data.last.map((g) => (
+              <GameRow key={g.id} game={g} showDate />
+            ))}
           </section>
         </div>
-        <section>
-          <h3 className="section-title">Plantel</h3>
-          <ul className="card squad">
-            {team.squad.map((p, i) => (
+        <section className="panel">
+          <h2 className="panel-title">Plantel</h2>
+          <ul className="squad">
+            {data.squad.map((p, i) => (
               <li key={p}>
-                <span className="num">{i + 1}</span> {p}
+                <span className="squad-num">{i + 1}</span> {p}
                 {i === 0 && <small>Arquero</small>}
               </li>
             ))}
@@ -55,7 +53,9 @@ export default function TeamPage({ team, league, now, onOpen }) {
         </section>
       </div>
 
-      <StandingsTable league={league} group={group} highlight={team.id} />
+      <section className="panel">
+        <StandingsTable name={data.table.name} table={data.table.table} highlight={team.id} />
+      </section>
     </>
   )
 }

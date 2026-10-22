@@ -1,72 +1,65 @@
 import Crest from './Crest.jsx'
 
-function zoneFor(zones, pos, size) {
-  return zones.find((z) => {
-    const to = z.to > size ? size : z.to
-    return pos >= z.from && pos <= to
-  })
-}
+const TREND = { 1: ['V', 'win'], 2: ['E', 'draw'], 3: ['D', 'loss'] }
 
-export default function StandingsTable({ league, group, compact = false, highlight }) {
+/** Renders one table exactly as the API describes it: columns, rows and destination colours. */
+export default function StandingsTable({ name, table, highlight, compact = false }) {
+  const columns = compact
+    ? table.columns.filter((c) => ['Points', 'GamePlayed', 'Ratio'].includes(c.key))
+    : table.columns
+  const used = new Set(table.rows.map((r) => r.destination_color).filter(Boolean))
+
   return (
-    <div className="card">
-      {group.name && <h3 className="card-title">{group.name}</h3>}
-      <div className="table-wrap">
+    <div className="table-card">
+      <h3 className="table-name">
+        {name}
+        {table.is_live && <span className="live-pill">EN VIVO</span>}
+      </h3>
+      <div className="table-scroll">
         <table className="standings">
           <thead>
             <tr>
-              <th className="pos">#</th>
-              <th className="team-col">Equipo</th>
-              <th>Pts</th>
-              <th>PJ</th>
-              {!compact && (
-                <>
-                  <th className="hide-sm">G</th>
-                  <th className="hide-sm">E</th>
-                  <th className="hide-sm">P</th>
-                  <th className="hide-sm">GF</th>
-                  <th className="hide-sm">GC</th>
-                </>
-              )}
-              <th>Dif</th>
-              {!compact && <th className="hide-sm">Últimos</th>}
+              <th className="num">#</th>
+              <th className="team-col">Equipos</th>
+              {columns.map((c) => (
+                <th key={c.key} className={c.type === 3 ? 'trend-col' : c.is_bold ? 'bold' : ''}>
+                  {c.title}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {group.rows.map((r, i) => {
-              const zone = zoneFor(league.zones, i + 1, group.rows.length)
+            {table.rows.map((row) => {
+              const team = row.entity.object
+              const values = Object.fromEntries(row.values.map((v) => [v.key, v.value]))
               return (
-                <tr key={r.team.id} className={r.team.id === highlight ? 'highlight' : ''}>
-                  <td className={`pos ${zone ? `zone-${zone.kind}` : ''}`} title={zone?.label}>
-                    {i + 1}
+                <tr key={team.id} className={team.id === highlight ? 'highlight' : ''}>
+                  <td className="num" style={row.destination_color ? { background: row.destination_color, color: '#fff' } : undefined}>
+                    {row.num}
                   </td>
                   <td className="team-col">
-                    <a href={`#/equipo/${r.team.id}`}>
-                      <Crest team={r.team} size={18} />
-                      <span>{r.team.name}</span>
-                      {r.live && <span className="live-dot" title="Jugando ahora" />}
+                    <a href={`#/team/${team.url_name}/${team.id}`}>
+                      <Crest team={team} size={18} />
+                      <span>{team.name}</span>
+                      {team.playing_now && <span className="live-dot" title="Jugando ahora" />}
                     </a>
                   </td>
-                  <td className="pts">{r.pts}</td>
-                  <td>{r.pj}</td>
-                  {!compact && (
-                    <>
-                      <td className="hide-sm">{r.pg}</td>
-                      <td className="hide-sm">{r.pe}</td>
-                      <td className="hide-sm">{r.pp}</td>
-                      <td className="hide-sm">{r.gf}</td>
-                      <td className="hide-sm">{r.gc}</td>
-                    </>
-                  )}
-                  <td>{r.dif > 0 ? `+${r.dif}` : r.dif}</td>
-                  {!compact && (
-                    <td className="hide-sm">
-                      <span className="form">
-                        {r.form.map((f, k) => (
-                          <span key={k} className={`form-${f}`}>{f}</span>
-                        ))}
-                      </span>
-                    </td>
+                  {columns.map((c) =>
+                    c.type === 3 ? (
+                      <td key={c.key} className="trend-col">
+                        <span className="trend">
+                          {values[c.key].map((t, i) => (
+                            <span key={i} className={`trend-${TREND[t][1]}`}>
+                              {TREND[t][0]}
+                            </span>
+                          ))}
+                        </span>
+                      </td>
+                    ) : (
+                      <td key={c.key} className={c.is_bold ? 'bold' : ''}>
+                        {values[c.key]}
+                      </td>
+                    ),
                   )}
                 </tr>
               )
@@ -74,13 +67,15 @@ export default function StandingsTable({ league, group, compact = false, highlig
           </tbody>
         </table>
       </div>
-      {!compact && (
-        <ul className="legend">
-          {league.zones.map((z) => (
-            <li key={z.label}>
-              <span className={`swatch zone-${z.kind}`} /> {z.label}
-            </li>
-          ))}
+      {!compact && used.size > 0 && (
+        <ul className="destinations">
+          {table.destinations
+            .filter((d) => used.has(d.color))
+            .map((d) => (
+              <li key={d.num}>
+                <span className="dot" style={{ background: d.color }} /> {d.name}
+              </li>
+            ))}
         </ul>
       )}
     </div>
